@@ -7,6 +7,7 @@ import { colors, radius, spacing } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
 import { createBooking } from '@/services/firebase';
 import { upcomingDays } from '@/utils/validation';
+import { firebaseErrorMessage } from '@/utils/firebaseError';
 import { PatientStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<PatientStackParamList, 'Booking'>;
@@ -37,8 +38,8 @@ export function BookingScreen({ navigation }: Props) {
         reason: reason.trim() || undefined,
       });
       navigation.goBack();
-    } catch {
-      Alert.alert('Booking failed', 'Could not create your appointment. Please try again.');
+    } catch (e) {
+      Alert.alert('Booking failed', firebaseErrorMessage(e));
     } finally {
       setSubmitting(false);
     }

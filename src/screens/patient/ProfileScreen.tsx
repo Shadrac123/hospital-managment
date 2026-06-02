@@ -7,6 +7,7 @@ import { MenuRow } from '@/components/common';
 import { colors, radius, spacing } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
 import { uploadAvatar, updateUserAvatar } from '@/services/firebase';
+import { firebaseErrorMessage } from '@/utils/firebaseError';
 
 // Phase 1 menu — only in-scope items. (No notifications, prescriptions, lab
 // reports, billing, etc. — those are out of scope.)
@@ -49,8 +50,8 @@ export function ProfileScreen() {
       const url = await uploadAvatar(user.uid, result.assets[0].uri);
       await updateUserAvatar(user.uid, url);
       // Profile updates live via the Firestore onSnapshot in AuthContext.
-    } catch {
-      Alert.alert('Upload failed', 'Could not update your avatar. Please try again.');
+    } catch (e) {
+      Alert.alert('Upload failed', firebaseErrorMessage(e));
     } finally {
       setUploading(false);
     }

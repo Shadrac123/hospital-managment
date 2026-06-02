@@ -32,7 +32,10 @@ function greetingForNow(): string {
 
 export function HomeScreen({ navigation }: Props) {
   const { profile, user } = useAuth();
-  const fullName = profile?.displayName?.trim() || 'there';
+  // Prefer the Firestore profile name; fall back to the Auth display name so the
+  // greeting is personal even before the profile doc resolves.
+  const fullName =
+    profile?.displayName?.trim() || user?.displayName?.trim() || 'there';
   const { bookings } = usePatientBookings(user?.uid);
 
   // Show the soonest active appointment (assigned preferred, else pending).

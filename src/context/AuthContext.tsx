@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useCallback,
 } from 'react';
@@ -36,51 +37,103 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AppUser | null>(null);
 
+  // During signup, onAuthStateChanged fires BEFORE the users/{uid} doc is
+  // written. We stash the just-created profile here so the listener can route on
+  // the correct role immediately instead of falling back to "patient".
+  const pendingSignupProfile = useRef<AppUser | null>(null);
+
   useEffect(() => {
     // Tracks the inner Firestore profile subscription so we can tear it down on
     // logout / user switch.
     let unsubscribeProfile: (() => void) | null = null;
+    // Delays the "missing doc -> patient" fallback so the signup write can land.
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearFallback = () => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    };
 
     const unsubscribeAuth = subscribeToAuth((fbUser) => {
       setUser(fbUser);
 
-      // Clean up any previous profile listener.
+      // Clean up any previous profile listener / pending fallback.
       unsubscribeProfile?.();
       unsubscribeProfile = null;
+      clearFallback();
 
       if (!fbUser) {
+        pendingSignupProfile.current = null;
         setProfile(null);
         setInitializing(false);
         return;
       }
 
-      // Real-time profile so avatar/role changes reflect immediately.
+      // If this auth event is the result of a signup we just performed, route on
+      // the known profile right away (the Firestore doc may not exist yet).
+      const pending = pendingSignupProfile.current;
+      if (pending && pending.uid === fbUser.uid) {
+        setProfile(pending);
+        setInitializing(false);
+      }
+
+      // Real-time profile so role/avatar changes reflect immediately.
       unsubscribeProfile = onSnapshot(
         doc(db, 'users', fbUser.uid),
         (snap) => {
           if (snap.exists()) {
+            // Authoritative profile from Firestore.
+            clearFallback();
+            pendingSignupProfile.current = null;
             setProfile(snap.data() as AppUser);
-          } else {
-            // Fall back to a patient profile if the role doc is missing, so a
-            // signed-in user is never stranded without a role.
-            setProfile({
-              uid: fbUser.uid,
-              email: fbUser.email ?? '',
-              displayName: fbUser.displayName ?? 'Patient',
-              role: 'patient',
-              photoURL: fbUser.photoURL,
-            });
+            setInitializing(false);
+            return;
           }
-          setInitializing(false);
+
+          // Doc missing. If we have an optimistic signup profile, keep it.
+          if (pendingSignupProfile.current?.uid === fbUser.uid) {
+            setProfile(pendingSignupProfile.current);
+            setInitializing(false);
+            return;
+          }
+
+          // Otherwise the doc may simply not have replicated yet (signup write
+          // racing the listener). Wait briefly before downgrading to patient so
+          // a real admin is never misrouted into the patient app.
+          if (!fallbackTimer) {
+            fallbackTimer = setTimeout(() => {
+              fallbackTimer = null;
+              setProfile((prev) =>
+                prev && prev.uid === fbUser.uid
+                  ? prev
+                  : {
+                      uid: fbUser.uid,
+                      email: fbUser.email ?? '',
+                      displayName: fbUser.displayName ?? 'Patient',
+                      role: 'patient',
+                      photoURL: fbUser.photoURL,
+                    },
+              );
+              setInitializing(false);
+            }, 2500);
+          }
         },
         () => {
-          setProfile(null);
+          // Permission/connectivity error — preserve any known profile rather
+          // than wiping it (which would bounce the user out of their stack).
+          clearFallback();
+          if (pendingSignupProfile.current?.uid === fbUser.uid) {
+            setProfile(pendingSignupProfile.current);
+          }
           setInitializing(false);
         },
       );
     });
 
     return () => {
+      clearFallback();
       unsubscribeProfile?.();
       unsubscribeAuth();
     };
@@ -92,7 +145,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (input: SignUpInput) => {
-    await svcSignUp(input);
+    const created = await svcSignUp(input);
+    // Seed the optimistic profile so routing uses the correct role immediately,
+    // even before the auth listener / Firestore snapshot settle.
+    pendingSignupProfile.current = created;
+    setProfile(created);
   }, []);
 
   const signOut = useCallback(async () => {
