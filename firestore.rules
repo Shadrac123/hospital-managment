@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Phase 2 security rules for the Doctor Booking app.
+// Collections: users, bookings, doctors.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Reads the caller's role document. Requires a users/{uid} doc with role.
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // --- users -------------------------------------------------------------
+    // A user can read/write only their own profile document. Admins can read
+    // any profile (e.g. to show patient details).
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // --- bookings ----------------------------------------------------------
+    // Patients create their own bookings and read their own. Admins read all
+    // and update (to assign a doctor / change status).
+    match /bookings/{id} {
+      allow read: if isSignedIn()
+        && (resource.data.patientId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // --- doctors -----------------------------------------------------------
+    // Any signed-in user can read the directory. Only admins manage it.
+    // (The app's first-run seed runs as an authenticated admin.)
+    match /doctors/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
