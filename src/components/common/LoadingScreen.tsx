@@ -13,7 +13,7 @@ export function LoadingScreen() {
         resizeMode="contain"
       />
       <Text variant="h2" style={styles.title}>
-        Doctor Booking
+        Hospital Management System
       </Text>
       <ActivityIndicator color={colors.primary} style={styles.spinner} />
     </View>

@@ -12,6 +12,7 @@ export const firebaseEnv = {
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ?? '',
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '',
+  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL ?? '',
 } as const;
 
 /** Auth needs at minimum apiKey + authDomain + projectId. appId is optional for Auth. */

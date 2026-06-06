@@ -14,6 +14,8 @@ export interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   leftIcon?: keyof typeof Ionicons.glyphMap;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightIconPress?: () => void;
   /** Shows a show/hide toggle and masks the value. */
   secure?: boolean;
 }
@@ -22,6 +24,8 @@ export function Input({
   label,
   error,
   leftIcon,
+  rightIcon,
+  onRightIconPress,
   secure,
   style,
   ...rest
@@ -69,7 +73,19 @@ export function Input({
           {...rest}
         />
 
-        {secure ? (
+        {rightIcon ? (
+          <Pressable
+            hitSlop={8}
+            onPress={onRightIconPress}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name={rightIcon}
+              size={18}
+              color={colors.textTertiary}
+            />
+          </Pressable>
+        ) : secure ? (
           <Pressable
             hitSlop={8}
             onPress={() => setHidden((h) => !h)}

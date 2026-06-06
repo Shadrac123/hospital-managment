@@ -19,3 +19,13 @@ export {
 } from './bookings';
 export { subscribeToDoctors, seedDoctorsIfEmpty } from './doctors';
 export { uploadAvatar } from './storage';
+export {
+  subscribeToAllPatients,
+  updatePatientProfile,
+  archivePatient,
+  restorePatient,
+  fetchPatientBookingsSummary,
+} from './patients';
+export { sendMessage, subscribeToMessages, markChatAsRead, subscribeToUnreadCount, subscribeToAllUnread } from './chats';
+export type { ChatMessage } from './chats';
+

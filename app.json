@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Doctor Booking",
-    "slug": "doctor-booking",
+    "name": "Hospital Management System",
+    "slug": "hospital-management-system",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
-    "scheme": "doctorbooking",
+    "scheme": "hospitalmanagement",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -15,10 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.doctorbooking.patient"
+      "bundleIdentifier": "com.hospitalmanagement.app"
     },
     "android": {
-      "package": "com.doctorbooking.patient",
+      "package": "com.hospitalmanagement.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
@@ -36,7 +36,8 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos so you can set a profile picture."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

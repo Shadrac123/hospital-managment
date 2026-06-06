@@ -6,7 +6,12 @@ export type AuthStackParamList = {
   Register: undefined;
 };
 
-/** Patient bottom-tab routes (matches the patient mockups). */
+/** Standalone onboarding stack — shown when patient profileComplete !== true. */
+export type OnboardingStackParamList = {
+  Onboarding: undefined;
+};
+
+/** Patient bottom-tab routes. */
 export type PatientTabParamList = {
   Home: undefined;
   Messages: undefined;
@@ -18,12 +23,14 @@ export type PatientTabParamList = {
 export type PatientStackParamList = {
   PatientTabs: NavigatorScreenParams<PatientTabParamList>;
   Booking: { doctorId?: string } | undefined;
+  Chat: { bookingId: string; recipientName: string };
 };
 
-/** Admin bottom-tab routes (matches the admin mockups). */
+/** Admin bottom-tab routes. */
 export type AdminTabParamList = {
   Dashboard: undefined;
   Bookings: undefined;
+  Patients: undefined;
   Doctors: undefined;
   AdminProfile: undefined;
 };
@@ -32,13 +39,18 @@ export type AdminTabParamList = {
 export type AdminStackParamList = {
   AdminTabs: NavigatorScreenParams<AdminTabParamList>;
   BookingDetails: { bookingId: string };
+  PatientDetails: { patientId: string };
+  PatientEdit: { patientId: string };
+  Chat: { bookingId: string; recipientName: string };
+  AdminChats: undefined;
 };
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace ReactNavigation {
     interface RootParamList
-      extends PatientStackParamList,
+      extends OnboardingStackParamList,
+        PatientStackParamList,
         AdminStackParamList,
         AuthStackParamList {}
   }

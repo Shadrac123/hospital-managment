@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "messages": {
+      "$bookingId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "unread": {
+      "$bookingId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      },
+      ".read": "auth != null"
+    }
+  }
+}

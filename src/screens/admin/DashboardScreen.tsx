@@ -1,14 +1,16 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, Card, SectionHeader } from '@/components/ui';
-import { GreetingHeader, StatCard, EmptyState, BookingCard } from '@/components/common';
+import { StatCard, EmptyState, BookingCard } from '@/components/common';
 import { colors, radius, spacing, shadows } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
-import { useAllBookings, useDoctors } from '@/hooks';
+import { useAllBookings, useDoctors, usePatientStats } from '@/hooks';
 import { AdminTabParamList, AdminStackParamList } from '@/navigation/types';
+import { subscribeToAllUnread } from '@/services/firebase';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AdminTabParamList, 'Dashboard'>,
@@ -20,19 +22,58 @@ export function DashboardScreen({ navigation }: Props) {
   const firstName = profile?.displayName?.split(' ')[0] ?? 'Admin';
   const { bookings } = useAllBookings();
   const { doctors } = useDoctors();
+  const patientStats = usePatientStats();
 
-  const stats = useMemo(() => {
-    const uniquePatients = new Set(bookings.map((b) => b.patientId)).size;
+  const [totalUnread, setTotalUnread] = useState(0);
+
+  // Subscribe to all unread counts for the admin badge
+  useEffect(() => {
+    const unsub = subscribeToAllUnread((unreadMap) => {
+      let sum = 0;
+      Object.keys(unreadMap).forEach((bookingId) => {
+        const counts = unreadMap[bookingId];
+        if (counts && counts.admin) {
+          sum += counts.admin;
+        }
+      });
+      setTotalUnread(sum);
+    });
+    return unsub;
+  }, []);
+
+  const bookingStats = useMemo(() => {
     const pending = bookings.filter((b) => b.status === 'pending').length;
     const assigned = bookings.filter((b) => b.status === 'assigned').length;
-    return { uniquePatients, pending, assigned };
+    return { pending, assigned };
   }, [bookings]);
 
   const recent = bookings.slice(0, 3);
 
   return (
     <Screen scroll>
-      <GreetingHeader greeting="Dashboard" name={firstName} hasNotifications />
+      {/* Custom Admin Greeting Header with Chat Icon */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextBlock}>
+          <Text variant="h1">Dashboard</Text>
+          <Text variant="bodyMuted" style={{ marginTop: 2 }}>
+            Welcome back, {firstName}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => navigation.navigate('AdminChats')}
+          style={styles.chatIconBtn}
+          android_ripple={{ color: colors.border }}
+        >
+          <Ionicons name="chatbubbles-outline" size={22} color={colors.primary} />
+          {totalUnread > 0 && (
+            <View style={styles.badge}>
+              <Text variant="caption" style={styles.badgeText}>
+                {totalUnread}
+              </Text>
+            </View>
+          )}
+        </Pressable>
+      </View>
 
       {/* Welcome banner */}
       <View style={[styles.banner, shadows.md]}>
@@ -41,38 +82,85 @@ export function DashboardScreen({ navigation }: Props) {
             Welcome back, {firstName}
           </Text>
           <Text variant="caption" color={colors.textInverse} style={styles.bannerSub}>
-            Here&apos;s your clinic at a glance
+            Here&apos;s your hospital at a glance
           </Text>
         </View>
       </View>
 
-      {/* Overview */}
+      {/* Patient Statistics */}
       <View style={styles.section}>
-        <SectionHeader title="Overview" />
+        <SectionHeader
+          title="Patient Statistics"
+          actionLabel="View all"
+          onAction={() => navigation.navigate('Patients')}
+        />
         <View style={styles.statRow}>
-          <StatCard icon="people-outline" value={String(stats.uniquePatients)} label="Patients" />
           <StatCard
-            icon="time-outline"
-            value={String(stats.pending)}
-            label="Pending"
-            tint={colors.warning}
-            tintBg={colors.warningSoft}
+            icon="people-outline"
+            value={String(patientStats.totalPatients)}
+            label="Total Patients"
+          />
+          <StatCard
+            icon="person-add-outline"
+            value={String(patientStats.newThisMonth)}
+            label="New This Month"
+            tint={colors.info}
+            tintBg={colors.infoSoft}
           />
         </View>
         <View style={[styles.statRow, styles.statRowGap]}>
           <StatCard
+            icon="checkmark-circle-outline"
+            value={String(patientStats.activePatients)}
+            label="Active"
+            tint={colors.success}
+            tintBg={colors.successSoft}
+          />
+          <StatCard
+            icon="archive-outline"
+            value={String(patientStats.archivedPatients)}
+            label="Archived"
+            tint={colors.textSecondary}
+            tintBg={colors.border}
+          />
+        </View>
+      </View>
+
+      {/* Booking Overview */}
+      <View style={styles.section}>
+        <SectionHeader
+          title="Booking Overview"
+          actionLabel="View all"
+          onAction={() => navigation.navigate('Bookings')}
+        />
+        <View style={styles.statRow}>
+          <StatCard
+            icon="time-outline"
+            value={String(bookingStats.pending)}
+            label="Pending"
+            tint={colors.warning}
+            tintBg={colors.warningSoft}
+          />
+          <StatCard
             icon="checkmark-done-outline"
-            value={String(stats.assigned)}
+            value={String(bookingStats.assigned)}
             label="Assigned"
             tint={colors.success}
             tintBg={colors.successSoft}
           />
+        </View>
+        <View style={[styles.statRow, styles.statRowGap]}>
           <StatCard
             icon="medkit-outline"
             value={String(doctors.length)}
             label="Doctors"
             tint={colors.info}
             tintBg={colors.infoSoft}
+          />
+          <StatCard
+            icon="documents-outline"
+            value={String(bookings.length)}
+            label="All Bookings"
           />
         </View>
       </View>
@@ -110,6 +198,41 @@ export function DashboardScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  headerTextBlock: { flex: 1 },
+  chatIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: colors.danger,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: colors.background,
+  },
+  badgeText: {
+    color: colors.textInverse,
+    fontSize: 9,
+    fontWeight: '700',
+  },
   banner: {
     backgroundColor: colors.primary,
     borderRadius: radius.xl,

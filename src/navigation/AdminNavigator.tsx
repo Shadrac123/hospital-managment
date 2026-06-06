@@ -7,16 +7,22 @@ import {
   DoctorsScreen,
   AdminProfileScreen,
   BookingDetailsScreen,
+  PatientsScreen,
+  PatientDetailsScreen,
+  PatientEditScreen,
+  AdminChatsScreen,
 } from '@/screens/admin';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminTabParamList, AdminStackParamList } from './types';
-import { sharedTabScreenOptions, tabIcon } from './tabBarOptions';
+import { buildTabScreenOptions, tabIcon } from './tabBarOptions';
 
 const Tab = createBottomTabNavigator<AdminTabParamList>();
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 function AdminTabs() {
+  const insets = useSafeAreaInsets();
   return (
-    <Tab.Navigator screenOptions={sharedTabScreenOptions}>
+    <Tab.Navigator screenOptions={buildTabScreenOptions(insets.bottom)}>
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
@@ -28,9 +34,14 @@ function AdminTabs() {
         options={{ tabBarIcon: tabIcon('documents-outline') }}
       />
       <Tab.Screen
+        name="Patients"
+        component={PatientsScreen}
+        options={{ tabBarIcon: tabIcon('people-outline') }}
+      />
+      <Tab.Screen
         name="Doctors"
         component={DoctorsScreen}
-        options={{ tabBarIcon: tabIcon('people-outline') }}
+        options={{ tabBarIcon: tabIcon('medkit-outline') }}
       />
       <Tab.Screen
         name="AdminProfile"
@@ -41,6 +52,8 @@ function AdminTabs() {
   );
 }
 
+import { ChatScreen } from '@/screens/common/ChatScreen';
+
 export function AdminNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -48,6 +61,26 @@ export function AdminNavigator() {
       <Stack.Screen
         name="BookingDetails"
         component={BookingDetailsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PatientDetails"
+        component={PatientDetailsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PatientEdit"
+        component={PatientEditScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="AdminChats"
+        component={AdminChatsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

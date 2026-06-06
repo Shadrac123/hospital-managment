@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Modal, Pressable, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Modal, Pressable, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import {
   Screen,
   Text,
@@ -15,7 +16,7 @@ import {
 import { EmptyState } from '@/components/common';
 import { colors, radius, spacing } from '@/theme';
 import { useBooking, useDoctors } from '@/hooks';
-import { assignDoctorToBooking } from '@/services/firebase';
+import { assignDoctorToBooking, db } from '@/services/firebase';
 import { Booking, BookingStatus, Doctor } from '@/types/models';
 import { formatBookingDate } from '@/utils/validation';
 import { AdminStackParamList } from '@/navigation/types';
@@ -36,6 +37,36 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
 
+  // Real-time capacity checks for doctors
+  const [busyDoctorIds, setBusyDoctorIds] = useState<string[]>([]);
+  const [loadingBusy, setLoadingBusy] = useState(false);
+
+  useEffect(() => {
+    if (!booking) return;
+
+    setLoadingBusy(true);
+    // Find all doctors who have an assigned booking at the exact same date and time
+    const q = query(
+      collection(db, 'bookings'),
+      where('date', '==', booking.date),
+      where('time', '==', booking.time),
+      where('status', '==', 'assigned')
+    );
+
+    getDocs(q)
+      .then((snap) => {
+        const ids = snap.docs
+          .map((d) => d.data().doctorId)
+          .filter((id): id is string => typeof id === 'string');
+        setBusyDoctorIds(ids);
+        setLoadingBusy(false);
+      })
+      .catch((err) => {
+        console.error('Error checking busy doctors:', err);
+        setLoadingBusy(false);
+      });
+  }, [booking]);
+
   const onAssign = async (doctor: Doctor) => {
     setPickerOpen(false);
     setAssigning(true);
@@ -45,6 +76,26 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
       Alert.alert('Assignment failed', 'Could not assign the doctor. Please try again.');
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const handleSelectDoctor = (doctor: Doctor) => {
+    const isBusy = busyDoctorIds.includes(doctor.id);
+    if (isBusy && booking) {
+      Alert.alert(
+        'Double Booking Warning',
+        `${doctor.name} is already assigned to another patient at ${booking.time} on ${formatBookingDate(booking.date)}. Are you sure you want to assign them anyway?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Assign Anyway',
+            style: 'destructive',
+            onPress: () => onAssign(doctor),
+          },
+        ]
+      );
+    } else {
+      onAssign(doctor);
     }
   };
 
@@ -117,6 +168,18 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
 
           <View style={styles.footer}>
             <Button
+              title="Chat with Patient"
+              icon="chatbubbles-outline"
+              variant="secondary"
+              style={styles.chatBtn}
+              onPress={() =>
+                navigation.navigate('Chat', {
+                  bookingId: booking.id,
+                  recipientName: booking.patientName,
+                })
+              }
+            />
+            <Button
               title={booking.status === 'assigned' ? 'Reassign Doctor' : 'Assign Doctor'}
               icon="person-add-outline"
               loading={assigning}
@@ -129,8 +192,10 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
       <DoctorPicker
         visible={pickerOpen}
         doctors={doctors}
+        busyDoctorIds={busyDoctorIds}
+        loadingBusy={loadingBusy}
         onClose={() => setPickerOpen(false)}
-        onSelect={onAssign}
+        onSelect={handleSelectDoctor}
       />
     </Screen>
   );
@@ -165,11 +230,15 @@ function InfoRow({
 function DoctorPicker({
   visible,
   doctors,
+  busyDoctorIds,
+  loadingBusy,
   onClose,
   onSelect,
 }: {
   visible: boolean;
   doctors: Doctor[];
+  busyDoctorIds: string[];
+  loadingBusy: boolean;
   onClose: () => void;
   onSelect: (d: Doctor) => void;
 }) {
@@ -178,9 +247,12 @@ function DoctorPicker({
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.sheet}>
         <View style={styles.sheetHandle} />
-        <Text variant="h3" style={styles.sheetTitle}>
-          Assign a doctor
-        </Text>
+        <View style={styles.sheetHeaderRow}>
+          <Text variant="h3" style={styles.sheetTitle}>
+            Assign a doctor
+          </Text>
+          {loadingBusy && <ActivityIndicator size="small" color={colors.primary} />}
+        </View>
         {doctors.length === 0 ? (
           <EmptyState
             icon="people-outline"
@@ -192,19 +264,26 @@ function DoctorPicker({
             data={doctors}
             keyExtractor={(d) => d.id}
             ItemSeparatorComponent={() => <Divider inset={56} />}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => onSelect(item)}
-                style={({ pressed }) => [styles.doctorRow, pressed && styles.pressed]}
-              >
-                <Avatar name={item.name} size={44} />
-                <View style={styles.doctorText}>
-                  <Text variant="h3">{item.name}</Text>
-                  <Text variant="caption">{item.specialty}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-              </Pressable>
-            )}
+            renderItem={({ item }) => {
+              const isBusy = busyDoctorIds.includes(item.id);
+              return (
+                <Pressable
+                  onPress={() => onSelect(item)}
+                  style={({ pressed }) => [styles.doctorRow, pressed && styles.pressed]}
+                >
+                  <Avatar name={item.name} size={44} />
+                  <View style={styles.doctorText}>
+                    <Text variant="h3">{item.name}</Text>
+                    <Text variant="caption">{item.specialty}</Text>
+                  </View>
+                  {isBusy ? (
+                    <Badge label="Double-Booked" tone="warning" />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                  )}
+                </Pressable>
+              );
+            }}
           />
         )}
       </View>
@@ -236,6 +315,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   infoTextBlock: { flex: 1, gap: 2 },
+  chatBtn: {
+    marginBottom: spacing.sm,
+  },
   footer: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
@@ -263,7 +345,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.borderStrong,
     marginBottom: spacing.lg,
   },
-  sheetTitle: { marginBottom: spacing.md },
+  sheetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  sheetTitle: { marginBottom: 0 },
   doctorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
   doctorText: { flex: 1 },
   pressed: { opacity: 0.6 },

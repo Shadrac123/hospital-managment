@@ -58,8 +58,14 @@ function createAuth(app: FirebaseApp): Auth {
   }
 }
 
+import { getDatabase, Database } from 'firebase/database';
+
 export const auth: Auth = createAuth(firebaseApp);
 
 export const db: Firestore = getFirestore(firebaseApp);
 
 export const storage: FirebaseStorage = getStorage(firebaseApp);
+
+// Initialize Realtime Database with optional databaseURL override
+const configuredDatabaseUrl = firebaseEnv.databaseURL || `https://${firebaseEnv.projectId}-default-rtdb.firebaseio.com`;
+export const database: Database = getDatabase(firebaseApp, configuredDatabaseUrl);

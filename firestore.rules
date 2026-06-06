@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Phase 2 security rules for the Doctor Booking app.
+// Phase 3 security rules for the Hospital Management System.
 // Collections: users, bookings, doctors.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,11 +18,12 @@ service cloud.firestore {
 
     // --- users -------------------------------------------------------------
     // A user can read/write only their own profile document. Admins can read
-    // any profile (e.g. to show patient details).
+    // any profile (e.g. to show patient details) and update any profile
+    // (e.g. to archive/restore a patient or update patient details).
     match /users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if isSignedIn() && request.auth.uid == uid;
-      allow update: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow delete: if false;
     }
 
@@ -41,7 +42,6 @@ service cloud.firestore {
 
     // --- doctors -----------------------------------------------------------
     // Any signed-in user can read the directory. Only admins manage it.
-    // (The app's first-run seed runs as an authenticated admin.)
     match /doctors/{id} {
       allow read: if isSignedIn();
       allow write: if isAdmin();

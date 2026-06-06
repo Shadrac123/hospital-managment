@@ -1,16 +1,21 @@
-# Doctor Booking — Mobile App
+# Hospital Management System — Mobile App
 
-A React Native (Expo) doctor-appointment app with role-based **Patient** and
+A React Native (Expo) hospital management app with role-based **Patient** and
 **Admin** experiences. Built with Expo SDK 54 and runnable in **Expo Go**.
 
 > **Phase 1:** clean UI for all screens + Firebase Authentication wiring and
 > patient/admin role routing.
 >
-> **Phase 2 (current):** functional Firebase wiring — real-time bookings
+> **Phase 2:** functional Firebase wiring — real-time bookings
 > (`onSnapshot`), admin doctor assignment, admin signup gated by a secret code,
 > patient avatar upload to Firebase Storage, and a real-name Home greeting. Uses
-> only live Firebase data (no mock data). Still excluded: notifications, billing,
-> hospitalization, prescriptions, lab reports, Realtime Database.
+> only live Firebase data (no mock data).
+>
+> **Phase 3 (current):** patient onboarding questionnaire (name, phone, DOB, gender,
+> address, emergency contact, profile photo); age computed from DOB; Admin › Patients
+> tab with real list, search, details, edit, archive/restore; Admin Dashboard patient
+> statistics (total, new this month, active, archived); PDF/print patient card with
+> photo, basic info, and booking summary.
 
 ### Firebase console setup required before running
 
@@ -29,7 +34,7 @@ A React Native (Expo) doctor-appointment app with role-based **Patient** and
 
 | Collection  | Document shape (key fields)                                              |
 | ----------- | ----------------------------------------------------------------------- |
-| `users`     | `{ uid, email, displayName, role: 'patient'\|'admin', photoURL }`       |
+| `users`     | `{ uid, email, displayName, role, phone, photoURL, dateOfBirth, gender, address, emergencyContact, profileComplete, isActive }` |
 | `bookings`  | `{ patientId, patientName, date, time, status, doctorId?, doctorName? }`|
 | `doctors`   | `{ name, specialty, available }`                                        |
 

@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '@/theme';
 import { Text } from './Text';
 
-type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends Omit<PressableProps, 'style'> {
@@ -70,6 +70,7 @@ const VARIANTS: Record<Variant, { bg: string; fg: string; border: string }> = {
   secondary: { bg: colors.primarySoft, fg: colors.primary, border: colors.primarySoft },
   outline: { bg: 'transparent', fg: colors.textPrimary, border: colors.borderStrong },
   ghost: { bg: 'transparent', fg: colors.primary, border: 'transparent' },
+  destructive: { bg: colors.danger, fg: colors.textInverse, border: colors.danger },
 };
 
 const SIZES: Record<Size, ViewStyle> = {

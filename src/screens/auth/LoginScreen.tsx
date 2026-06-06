@@ -50,7 +50,7 @@ export function LoginScreen({ navigation }: Props) {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text variant="h2">Doctor Booking</Text>
+          <Text variant="h2">Hospital Management System</Text>
         </View>
 
         <View style={styles.header}>
