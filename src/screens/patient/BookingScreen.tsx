@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator } fro
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen, Text, Input, Button, IconButton } from '@/components/ui';
 import { colors, radius, spacing, shadows } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -17,6 +18,7 @@ const MORNING_SLOTS = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30'];
 const AFTERNOON_SLOTS = ['12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
 
 export function BookingScreen({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { profile, user } = useAuth();
   const doctorId = route.params?.doctorId;
   
@@ -225,7 +227,7 @@ export function BookingScreen({ route, navigation }: Props) {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(spacing.xl, insets.bottom) }]}>
         <Button
           title="Book Now"
           icon="checkmark-circle-outline"

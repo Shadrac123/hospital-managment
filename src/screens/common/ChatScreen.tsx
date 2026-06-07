@@ -9,6 +9,7 @@ import {
   TextInput,
   Pressable,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, IconButton } from '@/components/ui';
 import { colors, radius, spacing, shadows } from '@/theme';
@@ -18,6 +19,7 @@ import { sendMessage, subscribeToMessages, ChatMessage, markChatAsRead } from '@
 export function ChatScreen({ route, navigation }: any) {
   const { bookingId, recipientName } = route.params;
   const { user, profile } = useAuth();
+  const insets = useSafeAreaInsets();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -159,7 +161,7 @@ export function ChatScreen({ route, navigation }: any) {
         )}
 
         {/* Input Bar */}
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
           <TextInput
             style={styles.textInput}
             placeholder="Type a message..."
@@ -298,7 +300,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.background,

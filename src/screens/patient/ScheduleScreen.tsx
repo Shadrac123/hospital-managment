@@ -90,6 +90,7 @@ export function ScheduleScreen({ navigation }: Props) {
         title="Book New Appointment"
         icon="add"
         onPress={() => navigation.navigate('Booking')}
+        style={styles.bookButton}
       />
     </Screen>
   );
@@ -115,4 +116,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, marginTop: spacing.lg },
   list: { paddingBottom: spacing.lg },
   gap: { height: spacing.md },
+  bookButton: {
+    marginBottom: spacing.md,
+  },
 });
