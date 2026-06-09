@@ -24,6 +24,8 @@ export type PatientStackParamList = {
   PatientTabs: NavigatorScreenParams<PatientTabParamList>;
   Booking: { doctorId?: string } | undefined;
   Chat: { bookingId: string; recipientName: string };
+  Reports: undefined;
+  ReportDetails: { reportId: string };
 };
 
 /** Admin bottom-tab routes. */
@@ -43,6 +45,8 @@ export type AdminStackParamList = {
   PatientEdit: { patientId: string };
   Chat: { bookingId: string; recipientName: string };
   AdminChats: undefined;
+  ReportsManagement: undefined;
+  AdminReportsDetails: { reportId: string };
 };
 
 declare global {

@@ -23,15 +23,26 @@ export function ScheduleScreen({ navigation }: Props) {
   const [tab, setTab] = useState<Tab>('Upcoming');
   const { bookings, loading } = usePatientBookings(user?.uid);
 
-  const visible = useMemo(
-    () =>
-      bookings.filter((b) =>
-        tab === 'Upcoming'
-          ? b.status === 'pending' || b.status === 'assigned'
-          : b.status === 'completed' || b.status === 'cancelled',
-      ),
-    [bookings, tab],
-  );
+  const visible = useMemo(() => {
+    return bookings.filter((b) => {
+      let past24 = false;
+      try {
+        const [year, month, day] = b.date.split('-').map(Number);
+        const [hours, minutes] = b.time.split(':').map(Number);
+        const bookingDate = new Date(year, month - 1, day, hours, minutes);
+        const now = new Date();
+        past24 = now.getTime() - bookingDate.getTime() > 24 * 60 * 60 * 1000;
+      } catch {
+        // ignore and fallback
+      }
+
+      if (tab === 'Upcoming') {
+        return b.status === 'pending' || (b.status === 'assigned' && !past24);
+      } else {
+        return b.status === 'completed' || b.status === 'cancelled' || (b.status === 'assigned' && past24);
+      }
+    });
+  }, [bookings, tab]);
 
   return (
     <Screen>

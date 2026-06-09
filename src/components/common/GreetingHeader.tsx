@@ -9,6 +9,7 @@ export interface GreetingHeaderProps {
   subtitle?: string;
   onBellPress?: () => void;
   hasNotifications?: boolean;
+  showNotifications?: boolean;
 }
 
 /** Top header used on Home/Dashboard: greeting block + notification bell. */
@@ -18,6 +19,7 @@ export function GreetingHeader({
   subtitle,
   onBellPress,
   hasNotifications,
+  showNotifications = true,
 }: GreetingHeaderProps) {
   return (
     <View style={styles.row}>
@@ -29,12 +31,14 @@ export function GreetingHeader({
           </Text>
         ) : null}
       </View>
-      <IconButton
-        name="notifications-outline"
-        onPress={onBellPress}
-        badge={hasNotifications}
-        accessibilityLabel="Notifications"
-      />
+      {showNotifications ? (
+        <IconButton
+          name="notifications-outline"
+          onPress={onBellPress}
+          badge={hasNotifications}
+          accessibilityLabel="Notifications"
+        />
+      ) : null}
     </View>
   );
 }

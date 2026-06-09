@@ -10,7 +10,8 @@ import { colors, radius, spacing, shadows } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAllBookings, useDoctors, usePatientStats } from '@/hooks';
 import { AdminTabParamList, AdminStackParamList } from '@/navigation/types';
-import { subscribeToAllUnread } from '@/services/firebase';
+import { subscribeToAllUnread, subscribeToAllReports } from '@/services/firebase';
+import { Report } from '@/types/models';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AdminTabParamList, 'Dashboard'>,
@@ -25,8 +26,8 @@ export function DashboardScreen({ navigation }: Props) {
   const patientStats = usePatientStats();
 
   const [totalUnread, setTotalUnread] = useState(0);
+  const [reports, setReports] = useState<Report[]>([]);
 
-  // Subscribe to all unread counts for the admin badge
   useEffect(() => {
     const unsub = subscribeToAllUnread((unreadMap) => {
       let sum = 0;
@@ -41,11 +42,25 @@ export function DashboardScreen({ navigation }: Props) {
     return unsub;
   }, []);
 
+  // Subscribe to all report requests for dashboard stats
+  useEffect(() => {
+    const unsub = subscribeToAllReports((data) => {
+      setReports(data);
+    });
+    return unsub;
+  }, []);
+
   const bookingStats = useMemo(() => {
     const pending = bookings.filter((b) => b.status === 'pending').length;
     const assigned = bookings.filter((b) => b.status === 'assigned').length;
     return { pending, assigned };
   }, [bookings]);
+
+  const reportStats = useMemo(() => {
+    const pending = reports.filter((r) => r.status === 'pending').length;
+    const approved = reports.filter((r) => r.status === 'approved').length;
+    return { pending, approved };
+  }, [reports]);
 
   const recent = bookings.slice(0, 3);
 
@@ -161,6 +176,31 @@ export function DashboardScreen({ navigation }: Props) {
             icon="documents-outline"
             value={String(bookings.length)}
             label="All Bookings"
+          />
+        </View>
+      </View>
+
+      {/* Reports Overview */}
+      <View style={styles.section}>
+        <SectionHeader
+          title="Reports Overview"
+          actionLabel="Manage"
+          onAction={() => navigation.navigate('ReportsManagement')}
+        />
+        <View style={styles.statRow}>
+          <StatCard
+            icon="document-text-outline"
+            value={String(reportStats.pending)}
+            label="Pending Requests"
+            tint={colors.warning}
+            tintBg={colors.warningSoft}
+          />
+          <StatCard
+            icon="checkmark-circle-outline"
+            value={String(reportStats.approved)}
+            label="Approved Reports"
+            tint={colors.success}
+            tintBg={colors.successSoft}
           />
         </View>
       </View>

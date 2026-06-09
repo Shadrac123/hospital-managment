@@ -41,3 +41,29 @@ export async function uploadAvatar(uid: string, localUri: string): Promise<strin
 
   return getDownloadURL(avatarRef);
 }
+
+/**
+ * Upload a report document (PDF or image) to Firebase Storage and return its public download URL.
+ * Stored under reports/{patientId}/{reportId}_{fileName}
+ */
+export async function uploadReportFile(
+  patientId: string,
+  reportId: string,
+  localUri: string,
+  fileName: string
+): Promise<string> {
+  const blob = await uriToBlob(localUri);
+  const sanitizedName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const fileRef = ref(storage, `reports/${patientId}/${reportId}_${sanitizedName}`);
+
+  try {
+    await uploadBytes(fileRef, blob, {
+      contentType: blob.type || 'application/octet-stream',
+    });
+  } finally {
+    const closeable = blob as Blob & { close?: () => void };
+    closeable.close?.();
+  }
+
+  return getDownloadURL(fileRef);
+}

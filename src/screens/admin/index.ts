@@ -7,4 +7,6 @@ export { PatientsScreen } from './PatientsScreen';
 export { PatientDetailsScreen } from './PatientDetailsScreen';
 export { PatientEditScreen } from './PatientEditScreen';
 export { AdminChatsScreen } from './AdminChatsScreen';
+export { ReportsManagementScreen } from './ReportsManagementScreen';
+export { AdminReportsDetailsScreen } from './AdminReportsDetailsScreen';
 

@@ -7,6 +7,8 @@ import {
   ScheduleScreen,
   ProfileScreen,
   BookingScreen,
+  ReportsScreen,
+  ReportDetailsScreen,
 } from '@/screens/patient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
@@ -92,6 +94,16 @@ export function PatientNavigator() {
       <Stack.Screen
         name="Chat"
         component={ChatScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Reports"
+        component={ReportsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ReportDetails"
+        component={ReportDetailsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

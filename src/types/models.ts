@@ -32,6 +32,11 @@ export interface AppUser {
   profileComplete?: boolean;
   /** false = archived/deactivated. Defaults to active when absent. */
   isActive?: boolean;
+  settings?: {
+    emailAlerts: boolean;
+    pushAlerts: boolean;
+    showCompleted: boolean;
+  };
 }
 
 /** Stored at `doctors/{id}`. */
@@ -88,4 +93,23 @@ export interface MessageThread {
   unread: number;
   avatarUrl?: string | null;
   kind: 'doctor' | 'system' | 'care-team';
+}
+
+export type ReportType = 'Lab Exam' | 'Consultation Summary' | 'Medical Report' | 'General Report';
+export type ReportStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Report {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientEmail: string;
+  reportType: ReportType;
+  patientNote?: string;
+  status: ReportStatus;
+  adminNote?: string;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileType?: string | null;
+  createdAt?: any;
+  updatedAt?: any;
 }

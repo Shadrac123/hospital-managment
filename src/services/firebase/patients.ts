@@ -34,6 +34,7 @@ function mapUser(data: DocumentData, uid: string): AppUser {
     emergencyContact: data.emergencyContact ?? undefined,
     profileComplete: data.profileComplete ?? false,
     isActive: data.isActive !== false, // default to true when missing
+    settings: data.settings ?? undefined,
   };
 }
 
@@ -48,12 +49,18 @@ export function subscribeToAllPatients(
   const q = query(
     collection(db, USERS),
     where('role', '==', 'patient'),
-    orderBy('createdAt', 'desc'),
   );
   return onSnapshot(
     q,
     (snap: QuerySnapshot<DocumentData>) => {
-      onData(snap.docs.map((d) => mapUser(d.data(), d.id)));
+      const mapped = snap.docs.map((d) => mapUser(d.data(), d.id));
+      // Sort by creation time descending in memory, putting missing timestamps at the end
+      mapped.sort((a, b) => {
+        const timeA = a.createdAt ?? 0;
+        const timeB = b.createdAt ?? 0;
+        return timeB - timeA;
+      });
+      onData(mapped);
     },
     (err) => onError?.(err),
   );

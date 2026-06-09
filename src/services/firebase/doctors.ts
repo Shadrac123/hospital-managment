@@ -8,6 +8,9 @@ import {
   onSnapshot,
   QuerySnapshot,
   DocumentData,
+  addDoc,
+  deleteDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from './app';
 import { Doctor } from '@/types/models';
@@ -63,4 +66,33 @@ export async function seedDoctorsIfEmpty(): Promise<void> {
     batch.set(doc(collection(db, DOCTORS)), d);
   });
   await batch.commit();
+}
+
+export async function addDoctor(name: string, specialty: string, available = true): Promise<void> {
+  const ref = collection(db, DOCTORS);
+  await addDoc(ref, {
+    name: name.trim(),
+    specialty: specialty.trim(),
+    available,
+    rating: 4.8,
+  });
+}
+
+export async function updateDoctor(
+  id: string,
+  name: string,
+  specialty: string,
+  available: boolean
+): Promise<void> {
+  const ref = doc(db, DOCTORS, id);
+  await updateDoc(ref, {
+    name: name.trim(),
+    specialty: specialty.trim(),
+    available,
+  });
+}
+
+export async function deleteDoctor(id: string): Promise<void> {
+  const ref = doc(db, DOCTORS, id);
+  await deleteDoc(ref);
 }

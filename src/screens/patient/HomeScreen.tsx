@@ -18,9 +18,7 @@ type Props = CompositeScreenProps<
 
 const QUICK_ACTIONS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'Doctor', icon: 'medkit-outline' },
-  { label: 'Medicine', icon: 'medical-outline' },
   { label: 'Report', icon: 'document-text-outline' },
-  { label: 'Emergency', icon: 'pulse-outline' },
 ];
 
 function greetingForNow(): string {
@@ -49,7 +47,7 @@ export function HomeScreen({ navigation }: Props) {
         greeting={`${greetingForNow()}, ${fullName}`}
         name={fullName}
         subtitle="Feeling happy today"
-        hasNotifications
+        showNotifications={false}
       />
 
       <SearchBar placeholder="Search doctors, symptoms..." />
@@ -59,7 +57,17 @@ export function HomeScreen({ navigation }: Props) {
         <SectionHeader title="Quick Actions" />
         <View style={styles.actionsRow}>
           {QUICK_ACTIONS.map((a) => (
-            <Pressable key={a.label} style={styles.action}>
+            <Pressable
+              key={a.label}
+              style={styles.action}
+              onPress={() => {
+                if (a.label === 'Report') {
+                  navigation.navigate('Reports');
+                } else if (a.label === 'Doctor') {
+                  navigation.navigate('Booking');
+                }
+              }}
+            >
               <View style={styles.actionIcon}>
                 <Ionicons name={a.icon} size={22} color={colors.primary} />
               </View>
@@ -69,24 +77,6 @@ export function HomeScreen({ navigation }: Props) {
             </Pressable>
           ))}
         </View>
-      </View>
-
-      {/* Promo banner */}
-      <View style={[styles.banner, shadows.md]}>
-        <View style={styles.bannerText}>
-          <Text variant="h3" color={colors.textInverse}>
-            Get 50% off
-          </Text>
-          <Text variant="bodyMuted" color={colors.textInverse} style={styles.bannerSub}>
-            on your first consultation
-          </Text>
-          <Pressable style={styles.bannerCta}>
-            <Text variant="label" color={colors.primary}>
-              Claim Now
-            </Text>
-          </Pressable>
-        </View>
-        <Ionicons name="medkit" size={64} color="rgba(255,255,255,0.25)" />
       </View>
 
       {/* Next appointment */}
@@ -118,8 +108,15 @@ export function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   section: { marginTop: spacing['2xl'] },
-  actionsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  action: { alignItems: 'center', gap: spacing.sm, flex: 1 },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.xl,
+  },
+  action: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    width: 72,
+  },
   actionIcon: {
     width: 60,
     height: 60,
@@ -130,24 +127,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     ...shadows.sm,
-  },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primary,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    marginTop: spacing['2xl'],
-    overflow: 'hidden',
-  },
-  bannerText: { flex: 1 },
-  bannerSub: { marginTop: 2, marginBottom: spacing.md, opacity: 0.9 },
-  bannerCta: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.surface,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
   },
 });

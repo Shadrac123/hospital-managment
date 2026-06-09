@@ -11,6 +11,8 @@ import {
   PatientDetailsScreen,
   PatientEditScreen,
   AdminChatsScreen,
+  ReportsManagementScreen,
+  AdminReportsDetailsScreen,
 } from '@/screens/admin';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminTabParamList, AdminStackParamList } from './types';
@@ -81,6 +83,16 @@ export function AdminNavigator() {
       <Stack.Screen
         name="AdminChats"
         component={AdminChatsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ReportsManagement"
+        component={ReportsManagementScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="AdminReportsDetails"
+        component={AdminReportsDetailsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

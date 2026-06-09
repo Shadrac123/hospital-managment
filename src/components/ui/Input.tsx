@@ -5,6 +5,8 @@ import {
   TextInputProps,
   StyleSheet,
   Pressable,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -18,6 +20,7 @@ export interface InputProps extends TextInputProps {
   onRightIconPress?: () => void;
   /** Shows a show/hide toggle and masks the value. */
   secure?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 export function Input({
@@ -28,6 +31,7 @@ export function Input({
   onRightIconPress,
   secure,
   style,
+  containerStyle,
   ...rest
 }: InputProps) {
   const [focused, setFocused] = useState(false);
@@ -46,6 +50,8 @@ export function Input({
           styles.field,
           focused && styles.fieldFocused,
           !!error && styles.fieldError,
+          rest.multiline && { height: 'auto', minHeight: 90, alignItems: 'flex-start', paddingVertical: spacing.sm },
+          containerStyle,
         ]}
       >
         {leftIcon ? (
@@ -53,12 +59,16 @@ export function Input({
             name={leftIcon}
             size={18}
             color={focused ? colors.primary : colors.textTertiary}
-            style={styles.leftIcon}
+            style={[styles.leftIcon, rest.multiline && { marginTop: spacing.xs }]}
           />
         ) : null}
 
         <TextInput
-          style={[styles.input, style]}
+          style={[
+            styles.input,
+            rest.multiline && { textAlignVertical: 'top', paddingTop: spacing.xs, minHeight: 70 },
+            style,
+          ]}
           placeholderTextColor={colors.textTertiary}
           secureTextEntry={hidden}
           autoCapitalize="none"

@@ -17,8 +17,14 @@ export {
   subscribeToBooking,
   assignDoctorToBooking,
 } from './bookings';
-export { subscribeToDoctors, seedDoctorsIfEmpty } from './doctors';
-export { uploadAvatar } from './storage';
+export {
+  subscribeToDoctors,
+  seedDoctorsIfEmpty,
+  addDoctor,
+  updateDoctor,
+  deleteDoctor,
+} from './doctors';
+export { uploadAvatar, uploadReportFile } from './storage';
 export {
   subscribeToAllPatients,
   updatePatientProfile,
@@ -28,4 +34,12 @@ export {
 } from './patients';
 export { sendMessage, subscribeToMessages, markChatAsRead, subscribeToUnreadCount, subscribeToAllUnread } from './chats';
 export type { ChatMessage } from './chats';
+export {
+  requestReport,
+  subscribeToPatientReports,
+  subscribeToAllReports,
+  subscribeToReport,
+  approveReportRequest,
+  rejectReportRequest,
+} from './reports';
 
