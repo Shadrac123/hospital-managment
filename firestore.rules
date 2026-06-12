@@ -56,5 +56,16 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if false;
     }
+
+    // --- emergencies --------------------------------------------------------
+    match /emergencies/{id} {
+      allow read: if isSignedIn()
+        && (resource.data.patientId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.patientId == request.auth.uid;
+      allow update: if isSignedIn()
+        && (resource.data.patientId == request.auth.uid || isAdmin());
+      allow delete: if false;
+    }
   }
 }

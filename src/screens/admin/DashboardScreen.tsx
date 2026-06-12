@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ViewStyle } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,8 +10,16 @@ import { colors, radius, spacing, shadows } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAllBookings, useDoctors, usePatientStats } from '@/hooks';
 import { AdminTabParamList, AdminStackParamList } from '@/navigation/types';
-import { subscribeToAllUnread, subscribeToAllReports } from '@/services/firebase';
-import { Report } from '@/types/models';
+import { subscribeToAllUnread, subscribeToAllReports, subscribeToAllEmergencies } from '@/services/firebase';
+import { Report, EmergencyRequest, EmergencySeverity } from '@/types/models';
+import { Badge } from '@/components/ui/Badge';
+
+const severityStyles: Record<EmergencySeverity, ViewStyle> = {
+  critical: { borderLeftColor: colors.danger },
+  high: { borderLeftColor: colors.danger },
+  medium: { borderLeftColor: colors.warning },
+  low: { borderLeftColor: colors.textSecondary },
+};
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AdminTabParamList, 'Dashboard'>,
@@ -27,6 +35,7 @@ export function DashboardScreen({ navigation }: Props) {
 
   const [totalUnread, setTotalUnread] = useState(0);
   const [reports, setReports] = useState<Report[]>([]);
+  const [emergencies, setEmergencies] = useState<EmergencyRequest[]>([]);
 
   useEffect(() => {
     const unsub = subscribeToAllUnread((unreadMap) => {
@@ -49,6 +58,18 @@ export function DashboardScreen({ navigation }: Props) {
     });
     return unsub;
   }, []);
+
+  // Subscribe to all emergency requests
+  useEffect(() => {
+    const unsub = subscribeToAllEmergencies((data) => {
+      setEmergencies(data);
+    });
+    return unsub;
+  }, []);
+
+  const activeEmergencies = useMemo(() => {
+    return emergencies.filter((e) => e.status !== 'resolved');
+  }, [emergencies]);
 
   const bookingStats = useMemo(() => {
     const pending = bookings.filter((b) => b.status === 'pending').length;
@@ -100,6 +121,77 @@ export function DashboardScreen({ navigation }: Props) {
             Here&apos;s your hospital at a glance
           </Text>
         </View>
+      </View>
+
+      {/* Emergency control panel */}
+      <View style={styles.section}>
+        <SectionHeader
+          title="Emergency Control Panel"
+          actionLabel={activeEmergencies.length > 0 ? `${activeEmergencies.length} Active` : undefined}
+        />
+        {activeEmergencies.length === 0 ? (
+          <Card padded={false}>
+            <EmptyState
+              icon="checkmark-circle-outline"
+              title="All clear"
+              message="No active emergencies reported."
+            />
+          </Card>
+        ) : (
+          <View style={styles.emergencyList}>
+            {activeEmergencies.map((e) => (
+              <Pressable
+                key={e.id}
+                onPress={() => navigation.navigate('AdminEmergencyDetails', { emergencyId: e.id })}
+              >
+                <Card style={[styles.emergencyCard, severityStyles[e.severity] || severityStyles.medium]}>
+                  <View style={styles.emergencyHeader}>
+                    <View style={styles.patientInfoBlock}>
+                      <Text variant="h3">{e.patientName}</Text>
+                      <Text variant="caption" color={colors.textSecondary}>
+                        {e.patientPhone || e.patientEmail}
+                      </Text>
+                    </View>
+                    <View style={styles.badgeRow}>
+                      <Badge
+                        label={e.severity.toUpperCase()}
+                        tone={e.severity === 'critical' || e.severity === 'high' ? 'danger' : e.severity === 'medium' ? 'warning' : 'neutral'}
+                      />
+                      <Badge
+                        label={e.status.toUpperCase()}
+                        tone={e.status === 'pending' ? 'warning' : e.status === 'acknowledged' ? 'info' : 'primary'}
+                      />
+                    </View>
+                  </View>
+                  
+                  <View style={styles.emergencyBody}>
+                    <Text variant="label" style={styles.emergencyTitleText}>
+                      {e.title}
+                    </Text>
+                    <Text variant="bodyMuted" numberOfLines={2} style={styles.emergencyDescText}>
+                      {e.description}
+                    </Text>
+                  </View>
+
+                  <View style={styles.emergencyFooter}>
+                    <Text variant="caption" color={colors.textTertiary}>
+                      Reported:{' '}
+                      {e.createdAt?.seconds
+                        ? new Date(e.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    <View style={styles.detailsLink}>
+                      <Text variant="caption" color={colors.danger}>
+                        Manage
+                      </Text>
+                      <Ionicons name="chevron-forward" size={12} color={colors.danger} />
+                    </View>
+                  </View>
+                </Card>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Patient Statistics */}
@@ -283,4 +375,33 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', gap: spacing.md },
   statRowGap: { marginTop: spacing.md },
   recentList: { gap: spacing.md },
+  emergencyList: { gap: spacing.md },
+  emergencyCard: {
+    borderLeftWidth: 4,
+    gap: spacing.sm,
+  },
+  severity_critical: { borderLeftColor: colors.danger },
+  severity_high: { borderLeftColor: colors.danger },
+  severity_medium: { borderLeftColor: colors.warning },
+  severity_low: { borderLeftColor: colors.textSecondary },
+  emergencyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  patientInfoBlock: { flex: 1 },
+  badgeRow: { flexDirection: 'row', gap: spacing.xs },
+  emergencyBody: { gap: 2 },
+  emergencyTitleText: { fontWeight: '700', color: colors.textPrimary },
+  emergencyDescText: { fontSize: 13 },
+  emergencyFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  detailsLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 });

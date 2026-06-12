@@ -26,6 +26,8 @@ export type PatientStackParamList = {
   Chat: { bookingId: string; recipientName: string };
   Reports: undefined;
   ReportDetails: { reportId: string };
+  Emergency: undefined;
+  EmergencyCreate: undefined;
 };
 
 /** Admin bottom-tab routes. */
@@ -47,6 +49,7 @@ export type AdminStackParamList = {
   AdminChats: undefined;
   ReportsManagement: undefined;
   AdminReportsDetails: { reportId: string };
+  AdminEmergencyDetails: { emergencyId: string };
 };
 
 declare global {

@@ -24,7 +24,7 @@ export {
   updateDoctor,
   deleteDoctor,
 } from './doctors';
-export { uploadAvatar, uploadReportFile } from './storage';
+export { uploadAvatar, uploadReportFile, uploadEmergencyImage, uploadChatImage, deleteChatImage } from './storage';
 export {
   subscribeToAllPatients,
   updatePatientProfile,
@@ -32,7 +32,14 @@ export {
   restorePatient,
   fetchPatientBookingsSummary,
 } from './patients';
-export { sendMessage, subscribeToMessages, markChatAsRead, subscribeToUnreadCount, subscribeToAllUnread } from './chats';
+export {
+  sendMessage,
+  sendImageMessage,
+  subscribeToMessages,
+  markChatAsRead,
+  subscribeToUnreadCount,
+  subscribeToAllUnread,
+} from './chats';
 export type { ChatMessage } from './chats';
 export {
   requestReport,
@@ -42,4 +49,12 @@ export {
   approveReportRequest,
   rejectReportRequest,
 } from './reports';
+export {
+  createEmergencyRequest,
+  subscribeToPatientEmergencies,
+  subscribeToAllEmergencies,
+  subscribeToEmergency,
+  updateEmergencyStatus,
+} from './emergencies';
+
 

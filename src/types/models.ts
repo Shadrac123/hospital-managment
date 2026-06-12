@@ -113,3 +113,31 @@ export interface Report {
   createdAt?: any;
   updatedAt?: any;
 }
+
+export type EmergencySeverity = 'low' | 'medium' | 'high' | 'critical';
+export type EmergencyStatus = 'pending' | 'acknowledged' | 'in-progress' | 'resolved';
+
+export interface EmergencyHistoryLog {
+  status: EmergencyStatus;
+  updatedBy: string;
+  updatedAt: number;
+  notes?: string;
+}
+
+export interface EmergencyRequest {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientEmail: string;
+  patientPhone?: string;
+  title: string;
+  description: string;
+  severity: EmergencySeverity;
+  status: EmergencyStatus;
+  imageUrl?: string | null;
+  createdAt: any;
+  updatedAt: any;
+  notes?: string;
+  history?: EmergencyHistoryLog[];
+}
+

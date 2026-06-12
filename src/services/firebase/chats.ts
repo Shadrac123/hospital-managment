@@ -1,12 +1,15 @@
 import { ref, push, set, onValue, serverTimestamp, increment, update } from 'firebase/database';
 import { database } from './app';
+import { uploadChatImage, deleteChatImage } from './storage';
 
 export interface ChatMessage {
   id: string;
   senderId: string;
   senderName: string;
   senderRole: 'patient' | 'admin';
-  text: string;
+  text?: string;
+  imageUrl?: string;
+  type: 'text' | 'image';
   timestamp: number;
 }
 
@@ -29,6 +32,7 @@ export async function sendMessage(
     senderName,
     senderRole,
     text: text.trim(),
+    type: 'text',
     timestamp: serverTimestamp(),
   });
 
@@ -38,6 +42,58 @@ export async function sendMessage(
   await update(unreadRef, {
     [otherRole]: increment(1),
   });
+}
+
+/**
+ * Uploads a chat image and sends an image message to the chat thread with an optional caption text.
+ * Cleans up the uploaded image from Storage if the database write fails.
+ */
+export async function sendImageMessage(
+  bookingId: string,
+  senderId: string,
+  senderName: string,
+  senderRole: 'patient' | 'admin',
+  localUri: string,
+  text?: string,
+): Promise<void> {
+  const messagesRef = ref(database, `messages/${bookingId}`);
+  const newMessageRef = push(messagesRef);
+  const messageId = newMessageRef.key;
+
+  if (!messageId) {
+    throw new Error('Could not generate message key.');
+  }
+
+  let imageUrl: string;
+  try {
+    imageUrl = await uploadChatImage(bookingId, messageId, localUri);
+  } catch (err) {
+    console.error('Failed to upload chat image:', err);
+    throw err;
+  }
+
+  try {
+    await set(newMessageRef, {
+      senderId,
+      senderName,
+      senderRole,
+      imageUrl,
+      text: text?.trim() || '',
+      type: 'image',
+      timestamp: serverTimestamp(),
+    });
+
+    // Increment the unread count for the other role
+    const otherRole = senderRole === 'patient' ? 'admin' : 'patient';
+    const unreadRef = ref(database, `unread/${bookingId}`);
+    await update(unreadRef, {
+      [otherRole]: increment(1),
+    });
+  } catch (err) {
+    console.error('Failed to write image message to database, cleaning up storage.', err);
+    await deleteChatImage(bookingId, messageId);
+    throw err;
+  }
 }
 
 /**
@@ -67,7 +123,9 @@ export function subscribeToMessages(
           senderId: msg.senderId ?? '',
           senderName: msg.senderName ?? '',
           senderRole: msg.senderRole ?? 'patient',
-          text: msg.text ?? '',
+          text: msg.text,
+          imageUrl: msg.imageUrl,
+          type: msg.type ?? (msg.imageUrl ? 'image' : 'text'),
           timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
         };
       });

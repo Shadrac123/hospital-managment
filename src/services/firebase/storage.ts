@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from './app';
 
 /**
@@ -67,3 +67,65 @@ export async function uploadReportFile(
 
   return getDownloadURL(fileRef);
 }
+
+/**
+ * Upload a patient's emergency image attachment to Firebase Storage.
+ */
+export async function uploadEmergencyImage(
+  patientId: string,
+  emergencyId: string,
+  localUri: string
+): Promise<string> {
+  const blob = await uriToBlob(localUri);
+  const fileRef = ref(storage, `emergencies/${patientId}/${emergencyId}.jpg`);
+
+  try {
+    await uploadBytes(fileRef, blob, {
+      contentType: blob.type || 'image/jpeg',
+    });
+  } finally {
+    const closeable = blob as Blob & { close?: () => void };
+    closeable.close?.();
+  }
+
+  return getDownloadURL(fileRef);
+}
+
+/**
+ * Upload a chat image to Firebase Storage and return its public download URL.
+ */
+export async function uploadChatImage(
+  bookingId: string,
+  messageId: string,
+  localUri: string
+): Promise<string> {
+  const blob = await uriToBlob(localUri);
+  const fileRef = ref(storage, `chats/${bookingId}/${messageId}.jpg`);
+
+  try {
+    await uploadBytes(fileRef, blob, {
+      contentType: blob.type || 'image/jpeg',
+    });
+  } finally {
+    const closeable = blob as Blob & { close?: () => void };
+    closeable.close?.();
+  }
+
+  return getDownloadURL(fileRef);
+}
+
+/**
+ * Delete a chat image from Storage.
+ */
+export async function deleteChatImage(
+  bookingId: string,
+  messageId: string
+): Promise<void> {
+  const fileRef = ref(storage, `chats/${bookingId}/${messageId}.jpg`);
+  try {
+    await deleteObject(fileRef);
+  } catch (err) {
+    console.warn('Failed to delete chat image from Storage:', err);
+  }
+}
+

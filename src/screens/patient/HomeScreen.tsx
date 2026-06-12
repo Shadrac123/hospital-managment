@@ -19,6 +19,7 @@ type Props = CompositeScreenProps<
 const QUICK_ACTIONS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'Doctor', icon: 'medkit-outline' },
   { label: 'Report', icon: 'document-text-outline' },
+  { label: 'Emergency', icon: 'alert-circle-outline' },
 ];
 
 function greetingForNow(): string {
@@ -56,26 +57,34 @@ export function HomeScreen({ navigation }: Props) {
       <View style={styles.section}>
         <SectionHeader title="Quick Actions" />
         <View style={styles.actionsRow}>
-          {QUICK_ACTIONS.map((a) => (
-            <Pressable
-              key={a.label}
-              style={styles.action}
-              onPress={() => {
-                if (a.label === 'Report') {
-                  navigation.navigate('Reports');
-                } else if (a.label === 'Doctor') {
-                  navigation.navigate('Booking');
-                }
-              }}
-            >
-              <View style={styles.actionIcon}>
-                <Ionicons name={a.icon} size={22} color={colors.primary} />
-              </View>
-              <Text variant="caption" color={colors.textPrimary}>
-                {a.label}
-              </Text>
-            </Pressable>
-          ))}
+          {QUICK_ACTIONS.map((a) => {
+            return (
+              <Pressable
+                key={a.label}
+                style={styles.action}
+                onPress={() => {
+                  if (a.label === 'Report') {
+                    navigation.navigate('Reports');
+                  } else if (a.label === 'Doctor') {
+                    navigation.navigate('Booking');
+                  } else if (a.label === 'Emergency') {
+                    navigation.navigate('Emergency');
+                  }
+                }}
+              >
+                <View style={styles.actionIcon}>
+                  <Ionicons
+                    name={a.icon}
+                    size={22}
+                    color={colors.primary}
+                  />
+                </View>
+                <Text variant="caption" color={colors.textPrimary}>
+                  {a.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 

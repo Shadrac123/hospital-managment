@@ -9,4 +9,6 @@ export { PatientEditScreen } from './PatientEditScreen';
 export { AdminChatsScreen } from './AdminChatsScreen';
 export { ReportsManagementScreen } from './ReportsManagementScreen';
 export { AdminReportsDetailsScreen } from './AdminReportsDetailsScreen';
+export { AdminEmergencyDetailsScreen } from './AdminEmergencyDetailsScreen';
+
 

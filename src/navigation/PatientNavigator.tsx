@@ -9,6 +9,8 @@ import {
   BookingScreen,
   ReportsScreen,
   ReportDetailsScreen,
+  EmergencyScreen,
+  EmergencyCreateScreen,
 } from '@/screens/patient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
@@ -105,6 +107,16 @@ export function PatientNavigator() {
         name="ReportDetails"
         component={ReportDetailsScreen}
         options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Emergency"
+        component={EmergencyScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="EmergencyCreate"
+        component={EmergencyCreateScreen}
+        options={{ presentation: 'card', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>
   );

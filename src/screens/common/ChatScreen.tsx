@@ -8,23 +8,27 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  Image,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Screen, Text, IconButton } from '@/components/ui';
 import { colors, radius, spacing, shadows } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
-import { sendMessage, subscribeToMessages, ChatMessage, markChatAsRead } from '@/services/firebase';
+import { sendMessage, sendImageMessage, subscribeToMessages, ChatMessage, markChatAsRead } from '@/services/firebase';
 
 export function ChatScreen({ route, navigation }: any) {
   const { bookingId, recipientName } = route.params;
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
   const insets = useSafeAreaInsets();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -49,27 +53,91 @@ export function ChatScreen({ route, navigation }: any) {
   }, [bookingId]);
 
   useEffect(() => {
-    if (!profile?.role || messages.length === 0) return;
+    const activeRole = role || profile?.role;
+    if (!activeRole || messages.length === 0) return;
     // Mark as read whenever the messages array updates
-    markChatAsRead(bookingId, profile.role);
-  }, [bookingId, messages.length, profile?.role]);
+    markChatAsRead(bookingId, activeRole);
+  }, [bookingId, messages.length, role, profile?.role]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || !user || !profile || sending) return;
-    const textToSend = inputText;
+    if ((!inputText.trim() && !selectedImageUri) || !user || !profile || sending) return;
+    const textToSend = inputText.trim();
+    const imageToSend = selectedImageUri;
+
     setInputText('');
+    setSelectedImageUri(null);
     setSending(true);
 
     try {
-      const senderRole = profile.role;
+      const senderRole = role || profile.role || 'patient';
       const senderName = profile.displayName || 'Anonymous';
-      await sendMessage(bookingId, user.uid, senderName, senderRole, textToSend);
+
+      if (imageToSend) {
+        await sendImageMessage(bookingId, user.uid, senderName, senderRole, imageToSend, textToSend);
+      } else {
+        await sendMessage(bookingId, user.uid, senderName, senderRole, textToSend);
+      }
+      
       // Auto scroll to end on send
-      flatListRef.current?.scrollToEnd({ animated: true });
-    } catch (err) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (err: any) {
       console.error('Failed to send message:', err);
+      setInputText(textToSend);
+      setSelectedImageUri(imageToSend);
+      Alert.alert('Send failed', err.message || 'Could not send message. Please try again.');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleAttachImage = () => {
+    if (sending) return;
+
+    Alert.alert(
+      'Share Image',
+      'Select a source for your photo:',
+      [
+        { text: 'Take Photo', onPress: handleCaptureCamera },
+        { text: 'Choose from Gallery', onPress: handlePickGallery },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleCaptureCamera = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow camera access to take a photo.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.6,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setSelectedImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handlePickGallery = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow photo library access to pick an image.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.6,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setSelectedImageUri(result.assets[0].uri);
     }
   };
 
@@ -80,6 +148,8 @@ export function ChatScreen({ route, navigation }: any) {
 
   const renderMessageItem = ({ item }: { item: ChatMessage }) => {
     const isMe = item.senderId === user?.uid;
+    const isImage = item.type === 'image' && !!item.imageUrl;
+
     return (
       <View style={[styles.messageRow, isMe ? styles.rowMe : styles.rowOther]}>
         {!isMe && (
@@ -90,13 +160,31 @@ export function ChatScreen({ route, navigation }: any) {
           </View>
         )}
         <View style={styles.bubbleContainer}>
-          <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther]}>
-            <Text
-              variant="body"
-              style={[styles.messageText, isMe ? styles.textMe : styles.textOther]}
-            >
-              {item.text}
-            </Text>
+          <View style={[
+            styles.bubble,
+            isMe ? styles.bubbleMe : styles.bubbleOther,
+            isImage && styles.imageBubble,
+          ]}>
+            {isImage ? (
+              <View>
+                <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+                {item.text ? (
+                  <Text
+                    variant="body"
+                    style={[styles.messageCaptionText, isMe ? styles.textMe : styles.textOther]}
+                  >
+                    {item.text}
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text
+                variant="body"
+                style={[styles.messageText, isMe ? styles.textMe : styles.textOther]}
+              >
+                {item.text}
+              </Text>
+            )}
           </View>
           <Text variant="caption" color={colors.textTertiary} style={styles.timestamp}>
             {formatTime(item.timestamp)}
@@ -160,26 +248,54 @@ export function ChatScreen({ route, navigation }: any) {
           />
         )}
 
+        {/* Selected Image Preview Area */}
+        {selectedImageUri && (
+          <View style={styles.previewContainer}>
+            <View style={styles.previewWrapper}>
+              <Image source={{ uri: selectedImageUri }} style={styles.previewThumbnail} />
+              <Pressable
+                style={styles.closePreviewBtn}
+                onPress={() => setSelectedImageUri(null)}
+                disabled={sending}
+              >
+                <Ionicons name="close-circle" size={20} color={colors.danger} />
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {/* Input Bar */}
         <View style={[styles.inputBar, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+          <Pressable
+            onPress={handleAttachImage}
+            disabled={sending}
+            style={styles.attachButton}
+          >
+            <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+          </Pressable>
           <TextInput
             style={styles.textInput}
-            placeholder="Type a message..."
+            placeholder={selectedImageUri ? "Add a caption..." : "Type a message..."}
             placeholderTextColor={colors.textTertiary}
             value={inputText}
             onChangeText={setInputText}
             multiline
             maxLength={500}
+            editable={!sending}
           />
           <Pressable
             onPress={handleSend}
-            disabled={!inputText.trim() || sending}
+            disabled={(!inputText.trim() && !selectedImageUri) || sending}
             style={[
               styles.sendButton,
-              (!inputText.trim() || sending) && styles.sendButtonDisabled,
+              ((!inputText.trim() && !selectedImageUri) || sending) && styles.sendButtonDisabled,
             ]}
           >
-            <Ionicons name="send" size={18} color={colors.textInverse} />
+            {sending ? (
+              <ActivityIndicator size="small" color={colors.textInverse} />
+            ) : (
+              <Ionicons name="send" size={18} color={colors.textInverse} />
+            )}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -195,7 +311,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
+    paddingTop: Platform.OS === 'ios' ? spacing.md : spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.background,
@@ -330,5 +447,58 @@ const styles = StyleSheet.create({
   sendButtonDisabled: {
     backgroundColor: colors.textTertiary,
     opacity: 0.5,
+  },
+  imageBubble: {
+    paddingHorizontal: 4,
+    paddingTop: 4,
+    paddingBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  messageImage: {
+    width: 220,
+    height: 160,
+    borderRadius: radius.lg,
+    resizeMode: 'cover',
+  },
+  messageCaptionText: {
+    fontSize: 14,
+    lineHeight: 18,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  attachButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xs,
+  },
+  previewContainer: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  previewWrapper: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  previewThumbnail: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  closePreviewBtn: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    ...shadows.sm,
   },
 });
