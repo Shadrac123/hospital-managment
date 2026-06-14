@@ -4,6 +4,21 @@ export const isValidEmail = (email: string): boolean =>
 export const isValidPassword = (password: string): boolean =>
   password.length >= 6;
 
+/**
+ * Signup-strength password: at least 6 characters AND a mix of letters, numbers,
+ * and symbols. Used for new account creation (patient + admin). Sign-in keeps the
+ * looser check so existing accounts are never blocked from logging in.
+ */
+export const isStrongPassword = (password: string): boolean =>
+  password.length >= 6 &&
+  /[A-Za-z]/.test(password) &&
+  /[0-9]/.test(password) &&
+  /[^A-Za-z0-9]/.test(password);
+
+/** Human-friendly summary of the strong-password rule, shown under the field. */
+export const PASSWORD_RULE_HINT =
+  'At least 6 characters, including letters, numbers, and a symbol.';
+
 export const isNonEmpty = (value: string): boolean => value.trim().length > 0;
 
 const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];

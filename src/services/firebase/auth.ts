@@ -4,6 +4,9 @@ import {
   signOut as fbSignOut,
   updateProfile,
   onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  reload,
   User,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -65,6 +68,14 @@ export async function signUp({
   const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
   await updateProfile(cred.user, { displayName });
 
+  // Kick off email verification immediately so the user lands on the
+  // "Verify your email" screen with a message already in their inbox.
+  try {
+    await sendEmailVerification(cred.user);
+  } catch {
+    // Non-fatal: the Verify screen exposes a "Resend" action as a fallback.
+  }
+
   const profile: AppUser = {
     uid: cred.user.uid,
     email: cred.user.email ?? email.trim(),
@@ -84,6 +95,29 @@ export async function signUp({
 
 export async function signOut(): Promise<void> {
   await fbSignOut(auth);
+}
+
+/** (Re)send a verification email to the currently signed-in user. */
+export async function sendVerificationEmail(): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error('You are signed out. Please sign in again.');
+  }
+  await sendEmailVerification(auth.currentUser);
+}
+
+/**
+ * Refresh the current user from Firebase and report whether their email is now
+ * verified. Backs the "I've verified — check again" button.
+ */
+export async function refreshEmailVerified(): Promise<boolean> {
+  if (!auth.currentUser) return false;
+  await reload(auth.currentUser);
+  return auth.currentUser.emailVerified;
+}
+
+/** Send a password-reset email. Used by the Forgot Password flow. */
+export async function sendPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email.trim());
 }
 
 /** Persist a new avatar URL on both the Firebase Auth profile and the user doc. */
@@ -114,18 +148,24 @@ export function authErrorMessage(error: unknown): string {
   switch (code) {
     case 'auth/invalid-email':
       return 'That email address looks invalid.';
+    case 'auth/missing-email':
+      return 'Please enter your email address.';
     case 'auth/missing-password':
       return 'Please enter your password.';
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
       return 'Incorrect email or password.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact support.';
     case 'auth/email-already-in-use':
-      return 'An account with this email already exists.';
+      return 'An account with this email already exists. Try signing in instead.';
     case 'auth/weak-password':
-      return 'Password should be at least 6 characters.';
+      return 'Password is too weak. Use at least 6 characters with letters, numbers, and a symbol.';
+    case 'auth/operation-not-allowed':
+      return 'Email sign-in is currently unavailable. Please try again later.';
     case 'auth/too-many-requests':
-      return 'Too many attempts. Please try again later.';
+      return 'Too many attempts. Please wait a moment and try again.';
     case 'auth/network-request-failed':
       return 'Network error. Check your connection and try again.';
     default:
