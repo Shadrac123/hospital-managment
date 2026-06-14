@@ -14,6 +14,9 @@ import {
   signIn as svcSignIn,
   signUp as svcSignUp,
   signOut as svcSignOut,
+  sendVerificationEmail as svcSendVerification,
+  refreshEmailVerified as svcRefreshEmailVerified,
+  sendPasswordReset as svcSendPasswordReset,
   SignUpInput,
   db,
 } from '@/services/firebase';
@@ -25,9 +28,17 @@ interface AuthContextValue {
   user: User | null;
   profile: AppUser | null;
   role: UserRole | null;
+  /** Whether the signed-in user's email address has been verified. */
+  emailVerified: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Resend the verification email to the current user. */
+  resendVerification: () => Promise<void>;
+  /** Reload the user and return whether their email is now verified. */
+  refreshEmailVerified: () => Promise<boolean>;
+  /** Send a password-reset email to the given address. */
+  sendPasswordReset: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -36,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AppUser | null>(null);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   // During signup, onAuthStateChanged fires BEFORE the users/{uid} doc is
   // written. We stash the just-created profile here so the listener can route on
@@ -58,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribeAuth = subscribeToAuth((fbUser) => {
       setUser(fbUser);
+      setEmailVerified(fbUser?.emailVerified ?? false);
 
       // Clean up any previous profile listener / pending fallback.
       unsubscribeProfile?.();
@@ -156,17 +169,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await svcSignOut();
   }, []);
 
+  const resendVerification = useCallback(async () => {
+    await svcSendVerification();
+  }, []);
+
+  const refreshEmailVerified = useCallback(async () => {
+    const verified = await svcRefreshEmailVerified();
+    setEmailVerified(verified);
+    return verified;
+  }, []);
+
+  const sendPasswordReset = useCallback(async (email: string) => {
+    await svcSendPasswordReset(email);
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       initializing,
       user,
       profile,
       role: profile?.role ?? null,
+      emailVerified,
       signIn,
       signUp,
       signOut,
+      resendVerification,
+      refreshEmailVerified,
+      sendPasswordReset,
     }),
-    [initializing, user, profile, signIn, signUp, signOut],
+    [
+      initializing,
+      user,
+      profile,
+      emailVerified,
+      signIn,
+      signUp,
+      signOut,
+      resendVerification,
+      refreshEmailVerified,
+      sendPasswordReset,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

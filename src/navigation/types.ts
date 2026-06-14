@@ -4,6 +4,12 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+};
+
+/** Standalone stack shown when a signed-in user's email is not yet verified. */
+export type VerifyEmailStackParamList = {
+  VerifyEmail: undefined;
 };
 
 /** Standalone onboarding stack — shown when patient profileComplete !== true. */
@@ -57,6 +63,7 @@ declare global {
   namespace ReactNavigation {
     interface RootParamList
       extends OnboardingStackParamList,
+        VerifyEmailStackParamList,
         PatientStackParamList,
         AdminStackParamList,
         AuthStackParamList {}

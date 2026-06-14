@@ -85,6 +85,16 @@ export function LoginScreen({ navigation }: Props) {
             }}
           />
 
+          <Pressable
+            onPress={() => navigation.navigate('ForgotPassword')}
+            hitSlop={6}
+            style={styles.forgotRow}
+          >
+            <Text variant="label" color={colors.primary}>
+              Forgot password?
+            </Text>
+          </Pressable>
+
           {error ? (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle" size={16} color={colors.danger} />
@@ -131,6 +141,7 @@ const styles = StyleSheet.create({
   header: { marginBottom: spacing['2xl'] },
   subtitle: { marginTop: spacing.xs },
   form: { gap: spacing.lg },
+  forgotRow: { alignSelf: 'flex-end', marginTop: -spacing.xs },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',

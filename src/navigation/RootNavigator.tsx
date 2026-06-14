@@ -9,7 +9,8 @@ import { AuthNavigator } from './AuthNavigator';
 import { PatientNavigator } from './PatientNavigator';
 import { AdminNavigator } from './AdminNavigator';
 import { OnboardingScreen } from '@/screens/patient';
-import { PatientStackParamList, OnboardingStackParamList } from './types';
+import { VerifyEmailScreen } from '@/screens/auth/VerifyEmailScreen';
+import { OnboardingStackParamList, VerifyEmailStackParamList } from './types';
 import { useBookingNotifications } from '@/hooks';
 
 const navTheme: Theme = {
@@ -37,6 +38,18 @@ function OnboardingNavigator() {
   );
 }
 
+// Standalone stack shown while a signed-in user has not verified their email.
+// The app proper only mounts once emailVerified flips true (AuthContext).
+const VerifyEmailStack = createNativeStackNavigator<VerifyEmailStackParamList>();
+
+function VerifyEmailNavigator() {
+  return (
+    <VerifyEmailStack.Navigator screenOptions={{ headerShown: false }}>
+      <VerifyEmailStack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+    </VerifyEmailStack.Navigator>
+  );
+}
+
 /**
  * Top-level router. Switches the entire tree based on auth + role + profile:
  *  - restoring session          → LoadingScreen
@@ -50,18 +63,24 @@ function OnboardingNavigator() {
  * patients who have not yet completed the questionnaire.
  */
 export function RootNavigator() {
-  const { initializing, user, role, profile } = useAuth();
-  
+  const { initializing, user, role, profile, emailVerified } = useAuth();
+
   // Listen for real-time booking updates and show in-app alerts
   useBookingNotifications();
 
   return (
     <NavigationContainer theme={navTheme}>
       <StatusBar style="dark" />
-      {initializing || (user && !profile) ? (
+      {initializing ? (
         <LoadingScreen />
       ) : !user ? (
         <AuthNavigator />
+      ) : !emailVerified ? (
+        // Signed in but email not yet verified — block the app behind verification.
+        <VerifyEmailNavigator />
+      ) : !profile ? (
+        // Verified, waiting on the role/profile document to resolve.
+        <LoadingScreen />
       ) : role === 'admin' ? (
         <AdminNavigator />
       ) : profile?.profileComplete ? (

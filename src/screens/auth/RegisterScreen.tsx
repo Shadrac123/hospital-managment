@@ -6,7 +6,12 @@ import { Screen, Text, Input, Button, IconButton } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
 import { authErrorMessage } from '@/services/firebase';
-import { isValidEmail, isValidPassword, isNonEmpty } from '@/utils/validation';
+import {
+  isValidEmail,
+  isStrongPassword,
+  isNonEmpty,
+  PASSWORD_RULE_HINT,
+} from '@/utils/validation';
 import { UserRole } from '@/types/models';
 import { AuthStackParamList } from '@/navigation/types';
 
@@ -22,15 +27,29 @@ export function RegisterScreen({ navigation }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole>('patient');
   const [adminCode, setAdminCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const passwordStrong = isStrongPassword(password);
+  const passwordsMatch = password === confirmPassword;
+  // Only surface the inline field errors once the user has typed something, so
+  // the form doesn't look "wrong" before they start.
+  const passwordError =
+    isNonEmpty(password) && !passwordStrong ? PASSWORD_RULE_HINT : undefined;
+  const confirmError =
+    isNonEmpty(confirmPassword) && !passwordsMatch
+      ? 'Passwords do not match.'
+      : undefined;
+
   const canSubmit =
     isNonEmpty(name) &&
     isValidEmail(email) &&
-    isValidPassword(password) &&
+    passwordStrong &&
+    passwordsMatch &&
+    isNonEmpty(confirmPassword) &&
     (role !== 'admin' || isNonEmpty(adminCode));
 
   const onSubmit = async () => {
@@ -126,11 +145,29 @@ export function RegisterScreen({ navigation }: Props) {
           <Input
             label="Password"
             leftIcon="lock-closed-outline"
-            placeholder="At least 6 characters"
+            placeholder="Create a strong password"
             secure
             value={password}
+            error={passwordError}
             onChangeText={(t) => {
               setPassword(t);
+              setError(null);
+            }}
+          />
+          {!passwordError ? (
+            <Text variant="caption" color={colors.textTertiary} style={styles.hint}>
+              {PASSWORD_RULE_HINT}
+            </Text>
+          ) : null}
+          <Input
+            label="Confirm password"
+            leftIcon="lock-closed-outline"
+            placeholder="Re-enter your password"
+            secure
+            value={confirmPassword}
+            error={confirmError}
+            onChangeText={(t) => {
+              setConfirmPassword(t);
               setError(null);
             }}
           />
@@ -202,6 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
   },
   form: { gap: spacing.lg },
+  hint: { marginLeft: spacing.xs, marginTop: -spacing.sm },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
