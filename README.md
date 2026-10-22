@@ -46,7 +46,7 @@ Storage: patient avatars at `avatars/{uid}.jpg`.
 
 | Concern        | Choice                                           |
 | -------------- | ------------------------------------------------ |
-| Framework      | Expo SDK **54** (React Native 0.81, React 19.1)  |
+| Framework      | Expo SDK **57** (React Native 0.81, React 19.1)  |
 | Language       | TypeScript (strict)                              |
 | Navigation     | React Navigation **v7** (native-stack + tabs)    |
 | Backend / Auth | **Firebase JS SDK v12** (works in Expo Go)       |
