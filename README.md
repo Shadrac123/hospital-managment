@@ -1,4 +1,4 @@
-# Hospital Management System — Mobile App
+# Hospital Management System — Mobile Application
 
 A React Native (Expo) hospital management app with role-based **Patient** and
 **Admin** experiences. Built with Expo SDK 54 and runnable in **Expo Go**.
